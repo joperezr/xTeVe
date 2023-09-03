@@ -958,6 +958,33 @@ func API(w http.ResponseWriter, r *http.Request) {
 	case "update.xepg":
 		buildXEPG(false)
 
+	case "refresh.xteve":
+		var tmp = Data.XEPG.Channels
+
+		// Iterating over the tmp map
+		for key, value := range tmp {
+
+			var xepgChannel XEPGChannelStruct
+			err = json.Unmarshal([]byte(mapToJSON(value)), &xepgChannel)
+			if err != nil {
+				return
+			}
+
+			if xepgChannel.XGroupTitle == request.GroupName {
+				xepgChannel.XActive = true
+				xepgChannel.XmltvFile = "xTeVe Dummy"
+				xepgChannel.XMapping = "120_Minutes"
+				xepgChannel.XUpdateChannelIcon = true
+				xepgChannel.XCategory = request.CategoryName
+
+				tmp[key] = xepgChannel
+			}
+		}
+
+		var xepgRequest RequestStruct
+		xepgRequest.EpgMapping = tmp
+		saveXEpgMapping(xepgRequest)
+
 	default:
 		err = errors.New(getErrMsg(5000))
 

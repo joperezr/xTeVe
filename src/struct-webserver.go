@@ -122,10 +122,12 @@ type ResponseStruct struct {
 
 // APIRequestStruct : Anfrage über die API Schnittstelle
 type APIRequestStruct struct {
-	Cmd      string `json:"cmd"`
-	Password string `json:"password"`
-	Token    string `json:"token"`
-	Username string `json:"username"`
+	Cmd          string `json:"cmd"`
+	Password     string `json:"password"`
+	Token        string `json:"token"`
+	Username     string `json:"username"`
+	GroupName    string `json:"group"`
+	CategoryName string `json:"category"`
 }
 
 // APIResponseStruct : Antwort an den Client (API)

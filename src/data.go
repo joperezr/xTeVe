@@ -791,13 +791,16 @@ func createFilterRules() (err error) {
 
 	}
 
+	showInfo("Before calling removePPVAndAddNewFilters")
 	removePPVAndAddNewFilters()
+	showInfo("After calling removePPVAndAddNewFilters")
 
 	return
 }
 
 func removePPVAndAddNewFilters() (err error) {
 
+	showInfo("Preparing to adjust filter with PPV items")
 	Data.Filter = nil
 	var dataFilter Filter
 
@@ -828,10 +831,13 @@ func removePPVAndAddNewFilters() (err error) {
 		}
 	}
 
+	showInfo(fmt.Sprintf("Calling Xtream server %s", os.Getenv("Xteve_XTREAM_URL")))
 	url := os.Getenv("Xteve_XTREAM_URL")
 	if url == "" {
 		return
 	}
+
+	showInfo("Recieved response. Beginning to parse data.")
 
 	resp, err := http.Get(url)
 	if err != nil {

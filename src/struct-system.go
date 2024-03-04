@@ -301,6 +301,12 @@ type SettingsStruct struct {
 	XteveAutoUpdate           bool                  `json:"xteveAutoUpdate"`
 }
 
+type CategoryXTREAM struct {
+	CategoryID   string `json:"category_id"`
+	CategoryName string `json:"category_name"`
+	ParentID     int    `json:"parent_id"`
+}
+
 // LanguageUI : Sprache für das WebUI
 type LanguageUI struct {
 	Login struct {

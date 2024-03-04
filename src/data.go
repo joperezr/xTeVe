@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path"
 	"sort"
@@ -789,89 +787,6 @@ func createFilterRules() (err error) {
 			Data.Filter = append(Data.Filter, dataFilter)
 		}
 
-	}
-
-	showInfo("Before calling removePPVAndAddNewFilters")
-	removePPVAndAddNewFilters()
-	showInfo("After calling removePPVAndAddNewFilters")
-
-	return
-}
-
-func removePPVAndAddNewFilters() (err error) {
-
-	showInfo("Preparing to adjust filter with PPV items")
-	Data.Filter = nil
-	var dataFilter Filter
-
-	for _, f := range Settings.Filter {
-
-		var filter FilterStruct
-
-		var exclude, include string
-
-		err = json.Unmarshal([]byte(mapToJSON(f)), &filter)
-		if err != nil {
-			return
-		}
-
-		switch filter.Type {
-
-		case "group-title":
-			// If filter.Filter starts with PPV, then skip it. Otherwise, add it to Data.Filter
-			if strings.HasPrefix(filter.Filter, "PPV") {
-				continue
-			} else {
-				dataFilter.CaseSensitive = filter.CaseSensitive
-				dataFilter.Rule = fmt.Sprintf("%s%s%s", filter.Filter, include, exclude)
-				dataFilter.Type = filter.Type
-
-				Data.Filter = append(Data.Filter, dataFilter)
-			}
-		}
-	}
-
-	showInfo(fmt.Sprintf("Calling Xtream server %s", os.Getenv("Xteve_XTREAM_URL")))
-	url := os.Getenv("Xteve_XTREAM_URL")
-	if url == "" {
-		return
-	}
-
-	showInfo("Recieved response. Beginning to parse data.")
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	var categories []CategoryXTREAM
-	if err = json.Unmarshal(body, &categories); err != nil {
-		return
-	}
-
-	for _, category := range categories {
-		if strings.HasPrefix(category.CategoryName, "PPV") {
-			if strings.HasPrefix(category.CategoryName, "PPV Sports - Beta") {
-				continue
-			}
-
-			if strings.HasPrefix(category.CategoryName, "PPV- Eventos") {
-				continue
-			}
-
-			dataFilter.CaseSensitive = false
-			dataFilter.Rule = fmt.Sprintf("%s", category.CategoryName)
-			dataFilter.Type = "group-title"
-
-			Data.Filter = append(Data.Filter, dataFilter)
-		}
 	}
 
 	return

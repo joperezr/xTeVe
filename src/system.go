@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -173,6 +175,16 @@ func loadSettings() (settings SettingsStruct, err error) {
 	settings.Version = System.DBVersion
 
 	err = saveSettings(settings)
+	if err != nil {
+		return
+	}
+
+	settings, err = addPPVFilters(settings)
+	if err != nil {
+		return
+	}
+
+	err = saveSettings(settings)
 
 	// Warung wenn FFmpeg nicht gefunden wurde
 	if len(Settings.FFmpegPath) == 0 && Settings.Buffer == "ffmpeg" {
@@ -184,6 +196,94 @@ func loadSettings() (settings SettingsStruct, err error) {
 	}
 
 	return
+}
+
+func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err error) {
+
+	var newFilters = make(map[int64]interface{})
+	newSettings = settings
+
+	var createNewID = func() (id int64) {
+
+	newID:
+		if _, ok := newFilters[id]; ok {
+			id++
+			goto newID
+		}
+
+		return id
+	}
+
+	for f_id, f := range settings.Filter {
+
+		var filter FilterStruct
+
+		err = json.Unmarshal([]byte(mapToJSON(f)), &filter)
+		if err != nil {
+			return
+		}
+
+		switch filter.Type {
+
+		case "group-title":
+			if !strings.HasPrefix(filter.Filter, "PPV") {
+				newFilters[f_id] = jsonToMap(mapToJSON(filter))
+			}
+		}
+	}
+
+	newSettings.Filter = newFilters
+
+	showInfo(fmt.Sprintf("Calling Xtream server %s", os.Getenv("Xteve_XTREAM_URL")))
+	url := os.Getenv("Xteve_XTREAM_URL")
+	if url == "" {
+		return
+	}
+
+	showInfo("Recieved response. Beginning to parse data.")
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	var categories []CategoryXTREAM
+	if err = json.Unmarshal(body, &categories); err != nil {
+		return
+	}
+
+	var filter FilterStruct
+
+	for _, category := range categories {
+		if strings.HasPrefix(category.CategoryName, "PPV") {
+			if strings.HasPrefix(category.CategoryName, "PPV Sports - Beta") {
+				continue
+			}
+
+			if strings.HasPrefix(category.CategoryName, "PPV- Eventos") {
+				continue
+			}
+
+			filter.Type = "group-title"
+			filter.Active = true
+			filter.CaseSensitive = false
+			filter.Filter = category.CategoryName
+
+			newFilterId := createNewID()
+			newFilters[newFilterId] = jsonToMap(mapToJSON(filter))
+		}
+	}
+
+	newSettings.Filter = newFilters
+
+	return newSettings, nil
 }
 
 // Einstellungen speichern (xTeVe)

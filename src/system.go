@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -202,6 +203,7 @@ func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err err
 
 	var newFilters = make(map[int64]interface{})
 	newSettings = settings
+	ppvRegex := regexp.MustCompile(`\bPPV\b`)
 
 	var createNewID = func() (id int64) {
 
@@ -226,7 +228,7 @@ func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err err
 		switch filter.Type {
 
 		case "group-title":
-			if !strings.HasPrefix(filter.Filter, "PPV") {
+			if !ppvRegex.MatchString(filter.Filter) {
 				newFilters[f_id] = jsonToMap(mapToJSON(filter))
 			}
 		}
@@ -262,7 +264,7 @@ func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err err
 	var filter FilterStruct
 
 	for _, category := range categories {
-		if strings.HasPrefix(category.CategoryName, "PPV") {
+		if ppvRegex.MatchString(category.CategoryName) {
 			if strings.HasPrefix(category.CategoryName, "PPV Sports - Beta") {
 				continue
 			}

@@ -216,6 +216,7 @@ func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err err
 		return id
 	}
 
+	// Remove all previously-added 'Automated' filters
 	for f_id, f := range settings.Filter {
 
 		var filter FilterStruct
@@ -225,12 +226,9 @@ func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err err
 			return
 		}
 
-		switch filter.Type {
-
-		case "group-title":
-			if !ppvRegex.MatchString(filter.Filter) {
-				newFilters[f_id] = jsonToMap(mapToJSON(filter))
-			}
+		// Keep filters that are NOT automated or NOT group-title type
+		if filter.Type != "group-title" || filter.Name != "Automated" {
+			newFilters[f_id] = jsonToMap(mapToJSON(filter))
 		}
 	}
 
@@ -263,8 +261,15 @@ func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err err
 
 	var filter FilterStruct
 
+	// Get today's date in "01/02" format (mm/dd)
+	todayDate := time.Now().Format("01/02")
+
 	for _, category := range categories {
+		shouldAddFilter := false
+
+		// Check if category contains PPV
 		if ppvRegex.MatchString(category.CategoryName) {
+			// Exclude specific PPV categories
 			if strings.HasPrefix(category.CategoryName, "PPV Sports - Beta") {
 				continue
 			}
@@ -273,10 +278,20 @@ func addPPVFilters(settings SettingsStruct) (newSettings SettingsStruct, err err
 				continue
 			}
 
+			shouldAddFilter = true
+		}
+
+		// Check if category contains today's date (mm/dd format)
+		if strings.Contains(category.CategoryName, todayDate) {
+			shouldAddFilter = true
+		}
+
+		if shouldAddFilter {
 			filter.Type = "group-title"
 			filter.Active = true
 			filter.CaseSensitive = false
 			filter.Filter = category.CategoryName
+			filter.Name = "Automated"
 
 			newFilterId := createNewID()
 			newFilters[newFilterId] = jsonToMap(mapToJSON(filter))
